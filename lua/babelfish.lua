@@ -1,14 +1,5 @@
 local get_node_text = require('vim.treesitter.query').get_node_text
 
-local docgen = {}
-
-local test_metadata = {
-  project_name = "lspconfig",
-  input_file = "tests/README.md",
-  output_file = "docs/lspconfig.txt",
-  header_metadata = {},
-}
-
 local tokens = {
   heading = "atx_heading",
   loose_list = "loose_list",
@@ -23,6 +14,7 @@ local style_elements = {
 }
 
 local converter = {}
+local docgen = {}
 
 converter.fenced_code_block = function(node, content, parsed_content, metadata)
   local codeblock_content = docgen.recursive_parser(node, content, {}, metadata)
@@ -69,7 +61,6 @@ docgen.recursive_parser = function(parent_node, content, parsed_content, metadat
   for node in parent_node:iter_children() do
 
     if converter.methods[node:type()] then
-      print('test')
       parsed_content = converter.methods[node:type()](node, content, parsed_content, metadata)
 
     elseif node:child_count() > 0 then
@@ -107,7 +98,5 @@ docgen.generate_readme = function(metadata)
   writer:write(readme_data)
   writer:close()
 end
-
-docgen.generate_readme(test_metadata)
 
 return docgen
