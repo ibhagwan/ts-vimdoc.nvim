@@ -1,27 +1,56 @@
-local ts_utils = require 'nvim-treesitter.ts_utils'
-
-local header_break = "=============================================================================="
 local get_node_text = require('vim.treesitter.query').get_node_text
+
+local metadata = {
+  project_name = "nvim-lspconfig",
+}
+
+local tokens = {
+  heading = "atx_heading",
+  loose_list = "loose_list",
+  tight_list = "tight_list",
+  fenced_code_block = "fenced_code_block",
+  paragraph = "paragraph"
+}
+
+local style_elements = {
+  header_break = string.rep("=", 78),
+}
+
+local function recursive_parser(parent_node, content, concatenated_content)
+  for node in parent_node:iter_children() do
+    if node:child_count() > 0 then
+      concatenated_content = recursive_parser(node, content, concatenated_content)
+    else
+      local text = get_node_text(node, content)
+      concatenated_content = concatenated_content .. text
+    end
+  end
+  return concatenated_content
+end
 
 local function parse_markdown(parser, contents)
   local tstree = parser:parse()[1]
   local formatted_file = {}
   local parent_node = tstree:root()
 
+  local header_count = 1
   for node in parent_node:iter_children() do
     local node_type = node:type()
-    if node_type == "atx_heading" then
-      table.insert(formatted_file, header_break)
+    if node_type == tokens.heading then
+      table.insert(formatted_file, style_elements.header_break)
       local text = get_node_text(node, contents)
-      -- local text = get_node_text(node, contents)[1]
-      text = string.gsub(text, "#*", "")
+      text = string.gsub(text, "#*[ ]", "")
+      local left = string.format("%d. %s", header_count, text)
+      local right = string.format("*%s-%s*", metadata.project_name, string.lower(text))
+      local padding = string.rep(" ", 78 - #left - #right)
+      text = string.format("%s%s%s", left, padding, right)
+      header_count = header_count + 1
       table.insert(formatted_file, text)
       table.insert(formatted_file, " ")
     else
-      for child_node in  node:iter_children() do
-        local text = get_node_text(child_node, contents)
-        table.insert(formatted_file, text)
-      end
+      local text = get_node_text(node, contents)
+      -- local new_text = recursive_parser(node, contents, "")
+      table.insert(formatted_file, text)
     end
 
   end
