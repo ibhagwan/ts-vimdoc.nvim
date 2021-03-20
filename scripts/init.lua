@@ -35,7 +35,4 @@ if pcall(require, "nvim-treesitter.parsers") then
     }
   }
 
-  require'nvim-treesitter.configs'.setup {
-    ensure_installed = { "markdown" }
-  }
 end
