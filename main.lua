@@ -49,7 +49,7 @@ local function parse_markdown(parser, contents)
       table.insert(formatted_file, " ")
     else
       local text = get_node_text(node, contents)
-      -- local new_text = recursive_parser(node, contents, "")
+      -- local text = recursive_parser(node, contents, "")
       table.insert(formatted_file, text)
     end
 

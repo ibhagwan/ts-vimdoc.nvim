@@ -1,1 +1,1 @@
-snvim -c ":luafile main.lua" -c ":q"  --headless
+nvim -c ":luafile main.lua" -c ":q"  --headless
