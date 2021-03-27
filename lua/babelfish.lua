@@ -6,7 +6,10 @@ local tokens = {
   tight_list = "tight_list",
   list_item = "list_item",
   fenced_code_block = "fenced_code_block",
-  paragraph = "paragraph"
+  code_fence_content = "code_fence_content",
+  paragraph = "paragraph",
+  soft_line_break = "soft_line_break",
+  link = "link"
 }
 
 local style_elements = {
@@ -17,6 +20,11 @@ local converter = {}
 local docgen = {}
 
 converter.fenced_code_block = function(node, content, parsed_content, metadata)
+  for child_node in node:iter_children() do
+    if child_node:type() == tokens.code_fence_content then
+      node = child_node
+    end
+  end
   local codeblock_content = docgen.recursive_parser(node, content, {}, metadata)
   codeblock_content = table.concat(docgen.indent(codeblock_content, 4), "")
   vim.list_extend(parsed_content, {"\n>", codeblock_content, "<\n\n" })
@@ -37,6 +45,31 @@ converter.heading = function(node, content, parsed_content, metadata)
   return parsed_content
 end
 
+converter.paragraph = function(parent_node, content, parsed_content, _)
+  local current_line = ""
+  for node in parent_node:iter_children() do
+    local text = get_node_text(node, content)
+    if node:type() == tokens.link then
+      current_line =  current_line .. " " .. text
+    else
+      for word in string.gmatch(text, "([^%s]+)") do
+        if string.match(word, "[.]") and #word == 1 then
+          current_line =  current_line .. word
+        elseif (#current_line + #word) > 78 then
+          table.insert(parsed_content, current_line)
+          current_line =  word
+        elseif #current_line == 0 then
+          current_line = word
+        else
+          current_line = current_line .. " " .. word
+        end
+      end
+    end
+  end
+  table.insert(parsed_content, current_line)
+  return parsed_content
+end
+
 converter.generic = function(node, content, parsed_content, _)
   local text = get_node_text(node, content)
   vim.list_extend(parsed_content, {text})
@@ -46,7 +79,7 @@ end
 converter.methods = {
   [tokens.fenced_code_block] = converter.fenced_code_block,
   [tokens.heading] = converter.heading,
-  [tokens.paragraph] = converter.generic,
+  [tokens.paragraph] = converter.paragraph,
   [tokens.list_item] = converter.generic,
 }
 
