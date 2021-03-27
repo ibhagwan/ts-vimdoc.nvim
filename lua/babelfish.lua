@@ -6,6 +6,7 @@ local tokens = {
   tight_list = "tight_list",
   list_item = "list_item",
   fenced_code_block = "fenced_code_block",
+  code_fence_content = "code_fence_content",
   paragraph = "paragraph",
   soft_line_break = "soft_line_break",
   link = "link"
@@ -19,6 +20,11 @@ local converter = {}
 local docgen = {}
 
 converter.fenced_code_block = function(node, content, parsed_content, metadata)
+  for child_node in node:iter_children() do
+    if child_node:type() == tokens.code_fence_content then
+      node = child_node
+    end
+  end
   local codeblock_content = docgen.recursive_parser(node, content, {}, metadata)
   codeblock_content = table.concat(docgen.indent(codeblock_content, 4), "")
   vim.list_extend(parsed_content, {"\n>", codeblock_content, "<\n\n" })
@@ -43,9 +49,7 @@ converter.paragraph = function(parent_node, content, parsed_content, _)
   local current_line = ""
   for node in parent_node:iter_children() do
     local text = get_node_text(node, content)
-    if node:type() == tokens.soft_line_break then
-      -- table.insert(parsed_content, "\n")
-    elseif node:type() == tokens.link then
+    if node:type() == tokens.link then
       current_line =  current_line .. " " .. text
     else
       for word in string.gmatch(text, "([^%s]+)") do
@@ -54,8 +58,10 @@ converter.paragraph = function(parent_node, content, parsed_content, _)
         elseif (#current_line + #word) > 78 then
           table.insert(parsed_content, current_line)
           current_line =  word
+        elseif #current_line == 0 then
+          current_line = word
         else
-          current_line =  current_line .. " " .. word
+          current_line = current_line .. " " .. word
         end
       end
     end
