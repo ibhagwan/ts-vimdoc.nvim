@@ -1,9 +1,7 @@
 # Introduction
 A tree-sitter based markdown -> vimdoc conversion tool. The plugin is currently in sporadic development and will be undergoing api changes (once it has an API). If you use in CI, I recommend pinning the revision.
 
-I created this plugin because I didn't want to generate vim help documentation from markdown sources. The current state of the plugin is that it "works" but the results are what I would consider "subpar".
-
-I generally won't respond to issue/feature requests (yet), but will review pull requests.
+I created this plugin because I didn't want to generate vim help documentation from markdown sources. The current state of the plugin is that it "works" but the results are what I would consider "subpar". There is also no error handling, and the documentation is non-existent.
 
 ### Ideas for contribution
 
