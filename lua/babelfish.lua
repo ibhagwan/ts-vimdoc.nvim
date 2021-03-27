@@ -35,9 +35,17 @@ local header_count = 1
 converter.heading = function(node, content, parsed_content, metadata)
   local text = get_node_text(node, content)
   text = string.gsub(text, "#+%s", "")
-  local left = string.format("%d. %s", header_count, text)
-  local right = string.lower(string.gsub(text, "%s", "-"))
-  right = string.format("*%s-%s*", metadata.project_name, right)
+  local left
+  local right
+  if not metadata.header_aliases[text] then
+    left = string.format("%d. %s", header_count, text)
+    right = string.lower(string.gsub(text, "%s", "-"))
+    right = string.format("*%s-%s*", metadata.project_name, right)
+  else
+    left = string.format("%d. %s", header_count, metadata.header_aliases[text][1])
+    right = string.lower(string.gsub(metadata.header_aliases[text][2], "%s", "-"))
+    right = string.format("*%s-%s*", metadata.project_name, right)
+  end
   local padding = string.rep(" ", 78 - #left - #right)
   text = string.format("%s%s%s", left, padding, right)
   vim.list_extend(parsed_content, {style_elements.header_break, text, "\n"})

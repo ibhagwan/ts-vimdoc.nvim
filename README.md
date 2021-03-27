@@ -12,7 +12,6 @@ I generally won't respond to issue/feature requests (yet), but will review pull 
 - Test and find errors in more complex markdown
 - Convert nested codeblocks
 - Convert numbered to '-' bulleted lists
-- Add aliasing for different title elements
 - Add table of contents (optional)
 
 ### Usage as a plugin
