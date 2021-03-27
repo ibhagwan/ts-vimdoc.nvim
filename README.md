@@ -8,11 +8,10 @@ I generally won't respond to issue/feature requests (yet), but will review pull 
 ### Ideas for contribution
 
 - Tangle multiple markdown files (lspconfig README.md and CONFIG.md for example)
-- Intelligent line-wrapping
+- (More) Intelligent line-wrapping
 - Test and find errors in more complex markdown
 - Convert nested codeblocks
 - Convert numbered to '-' bulleted lists
-- Fix codeblocks containing language identifier
 - Add aliasing for different title elements
 - Add table of contents (optional)
 
