@@ -3,6 +3,8 @@ A tree-sitter based markdown -> vimdoc conversion tool. The plugin is currently 
 
 I created this plugin because I didn't want to generate vim help documentation from markdown sources. The current state of the plugin is that it "works" but the results are what I would consider "subpar". There is also no error handling, and the documentation is non-existent.
 
+I highly recommend you consider using [panvimdoc](https://github.com/kdheepak/panvimdoc) instead. I think the approach of babelfish is "cool" and hypothetically more customizable (since you have access to a pseudo markdown AST), but in general pandoc should be more robust.
+
 ### Ideas for contribution
 
 - Tangle multiple markdown files (lspconfig README.md and CONFIG.md for example)
