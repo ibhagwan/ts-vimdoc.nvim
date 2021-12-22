@@ -1,11 +1,11 @@
 local converter = require('converter')
 local docgen = {}
 
-docgen.parse_markdown = function (parser, contents, metadata)
+docgen.parse_markdown = function (parser, contents)
   local tstree = parser:parse()[1]
   local parent_node = tstree:root()
 
-  local formatted_file = converter.recursive_parser(parent_node, contents, metadata, {}).parsed_content
+  local formatted_file = converter.recursive_parser(parent_node, contents)
   table.insert(formatted_file, "\nvim:tw=78:ts=8:ft=help:norl:")
 
   local final_text = table.concat(formatted_file, "\n")
@@ -17,10 +17,11 @@ docgen.generate_readme = function(metadata)
   local contents = fp:read("*all")
   fp:close()
 
-  converter.methods = vim.tbl_extend('force', converter.methods, metadata.methods)
+  converter.handlers = vim.tbl_extend('force', converter.handlers, metadata.handlers)
+  converter.metadata = vim.tbl_extend('force', converter.metadata or {}, metadata)
 
   local parser = vim.treesitter.get_string_parser(contents, "markdown")
-  local readme_data = docgen.parse_markdown(parser, contents, metadata)
+  local readme_data = docgen.parse_markdown(parser, contents)
 
   local writer = io.open(metadata.output_file, "w")
   writer:write(readme_data)

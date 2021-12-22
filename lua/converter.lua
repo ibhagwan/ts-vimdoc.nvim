@@ -1,161 +1,238 @@
-local tokens = require('tokens').tokens
 local formatting = require('formatting')
 local get_node_text = require('vim.treesitter.query').get_node_text
 
+local function lua_escape(str)
+  -- escape all lua special chars
+  -- ( ) % . + - * [ ? ^ $
+  if not str then return str end
+  return str:gsub('[%(%)%.%+%-%*%[%?%^%$%%]', function(x)
+    return '%' .. x
+  end)
+end
+
+local make_paragraph = function(line_parts, opts)
+  local text = table.concat(line_parts)
+  if opts.in_block_quote then
+    -- remove preceding spaces and '>'
+    text = text:gsub("^>", ""):gsub("\n%s->", "\n")
+  end
+  -- table hack
+  local raw_wrapped, is_table = text:gsub("^|(.*)|\n", "<raw>|%1|<NL></raw>")
+  if is_table and is_table>0 then
+    text = raw_wrapped:gsub("<NL></raw>", "</raw>")
+  end
+  local res = {}
+  local line = nil
+  local start_idx, end_idx = 1, nil
+  local pattern = opts.strip_newlines and "%s\n" or "%s"
+  local function insert_line(l)
+    if not l then return end
+    if opts.in_block_quote and opts.in_block_quote>0 then
+      l = string.rep(" ", opts.in_block_quote*2) .. line
+    end
+    table.insert(res, l)
+    return nil
+  end
+  repeat
+    start_idx = text:find("[^"..pattern.."]+", start_idx)
+    if start_idx then
+      if text:sub(start_idx):match("^<raw>") then
+        if line and #line>0 then
+          -- first insert the leftover line
+          line = insert_line(line)
+        end
+        end_idx = text:find("</raw>", start_idx)
+        local raw = text:sub(start_idx+5, end_idx-1):gsub("<NL>", "\n")
+        end_idx = end_idx+6
+        -- insert raw, no block quote indent
+        table.insert(res, raw)
+      else
+        end_idx = text:find("["..pattern.."]", start_idx)
+        local word = text:sub(start_idx, end_idx and end_idx-1 or #text)
+        if not line then
+          line = word
+        elseif (#line + #word + 1) > 78 then
+          insert_line(line)
+          line = (opts.in_list and "  " or "") .. word
+        else
+          line = line .. " " .. word
+        end
+      end
+      start_idx = end_idx
+    end
+  until (not start_idx or start_idx>#text-1)
+  -- insert leftover line
+  insert_line(line)
+  if not opts.in_list or not is_table then
+    -- newline after paragraphs
+    vim.list_extend(res, {''})
+  end
+  return res
+end
+
 local converter = {}
 
-local function recurse_links(parent_node, links)
-  for node in parent_node:iter_children() do
-    -- link or image
-    if node:symbol() == 184 or node:symbol() == 185 then
-      table.insert(links, node)
-    end
-    if node:child_count() > 0 then
-      links = recurse_links(node, links)
-    end
-  end
-  return links
-end
-
-converter.generic = function(node, content, _, _r)
-  local text = get_node_text(node, content)
-  local links = recurse_links(node, {})
-  for _, lnode in ipairs(links) do
-    local ltext = get_node_text(lnode, content):gsub('[%[%]%(%)%-]', function(x) return '%'..x end)
-    local parsed = converter.link(lnode, content, _, { line_parts = {} })
-    text = text:gsub(ltext, parsed[1])
-  end
-  vim.list_extend(_r.line_parts, {text})
-  return _r.line_parts, false
-end
-
-converter.fenced_code_block = function(node, content, _, _r)
+converter.fenced_code_block = function(node, content, _r)
+  local text_orig = get_node_text(node, content)
   for child_node in node:iter_children() do
-    if child_node:type() == tokens.code_fence_content then
+    if child_node:type() == 'code_fence_content' then
       node = child_node
     end
   end
-  local codeblock_content = vim.split(get_node_text(node, content), "\n")
+  local codeblock_content = vim.split(get_node_text(node, content):gsub("\n>?%s-$", ""), "\n")
   codeblock_content = formatting.indent(codeblock_content, 4)
-  vim.list_extend(_r.line_parts, {">"})
-  vim.list_extend(_r.line_parts, codeblock_content)
-  vim.list_extend(_r.line_parts, {"<"})
-  return _r.line_parts, false
+  local lines = {}
+  vim.list_extend(lines, {">"})
+  vim.list_extend(lines, codeblock_content)
+  vim.list_extend(lines, {"<"})
+  if _r.container_text then
+    local text = "<raw>"..table.concat(lines, "<NL>").."</raw>"
+    _r.container_text = _r.container_text:gsub(
+      lua_escape(text_orig), text)
+  else
+    vim.list_extend(_r.parsed_content, lines)
+  end
+  return false
 end
 
-converter.heading = function(node, content, metadata, _r)
+converter.heading = function(node, content, _r)
   local header_level = 1
+  local metadata = converter.metadata
   for child in node:iter_children() do
-    -- atx_h1_marker = 11
-    -- atx_h2_marker = 12
-    -- atx_h3_marker = 13
-    if child:symbol() == 12 then
+    local child_type = child:type()
+    if child_type == 'atx_h2_marker' then
       header_level = 2
-    elseif child:symbol() == 13 then
+    elseif child_type == 'atx_h3_marker' then
       header_level = 3
     end
   end
   local text = get_node_text(node, content)
-  text = string.gsub(text, "#+%s", "")
-  local left
-  local right
+  text = string.gsub(text, "#+%s", ""):gsub("\n", "")
   local header_prefix = ''
   if metadata.header_count_lvl and header_level <= metadata.header_count_lvl then
     header_prefix = ("%d. "):format(_r.header_count)
     _r.header_count = _r.header_count + 1
   end
-  if metadata.header_aliases and metadata.header_aliases[text] then
-    left = string.format("%s%s", header_prefix, metadata.header_aliases[text][1])
-    right = string.lower(string.gsub(metadata.header_aliases[text][2], "%s", "-"))
-    right = string.format("*%s-%s*", metadata.project_name, right)
-  else
-    left = string.format("%s%s", header_prefix, string.upper(text))
-    right = string.lower(string.gsub(text, "%s", "-"))
-    right = string.format("*%s-%s*", metadata.project_name, right)
-  end
+  local left = string.format("%s%s", header_prefix, string.upper(text))
+  local right = string.lower(string.gsub(text, "%s", "-"))
+  right = string.format("*%s-%s*", metadata.project_name, right)
   local padding = string.rep(" ", 78 - #left - #right)
   text = string.format("%s%s%s", left, padding, right)
+  local lines = {}
   if not vim.tbl_isempty(_r.parsed_content) then
-    vim.list_extend(_r.line_parts, {''})
+    vim.list_extend(lines, {''})
   end
-  vim.list_extend(_r.line_parts,
+  vim.list_extend(lines,
     {formatting.style_elements.header_break[header_level], text, ''})
   if header_level <= 2 then
-    vim.list_extend(_r.line_parts, {''})
+    vim.list_extend(lines, {''})
   end
-  return _r.line_parts, false
+  vim.list_extend(_r.parsed_content, lines)
+  return false
 end
 
-converter.link = function(node, content, _, _r)
-  local text, link_text, link_dest
+converter.link = function(node, content, _r)
+  local link_text, link_dest
+  local link_orig = get_node_text(node, content)
   for child in node:iter_children() do
-    -- link_text          = 234
-    -- link_destination   = 190
-    -- image_descripttion = 230
-    if child:symbol() == 234 or child:symbol() == 230 then
+    local child_type = child:type()
+    if child_type == 'link_text' or
+       child_type == 'image_description' then
       link_text = get_node_text(child, content)
-      if _r.in_block_quote then
-        link_text = link_text:gsub("[>\n]", "")
-      end
-    elseif child:symbol() == 190 then
+    elseif child_type == 'link_destination' then
       link_dest = get_node_text(child, content)
     end
   end
-  text = ("%s <%s>"):format(link_text, link_dest)
-  vim.list_extend(_r.line_parts, {text})
-  return _r.line_parts, false
-end
-
-converter.table = function(node, content, _, _r)
-  local text = get_node_text(node, content)
-  vim.list_extend(_r.line_parts, {text})
-  return _r.line_parts, false
-end
-
-local make_paragraph = function(line_parts, in_block_quote)
-  local line = table.concat(line_parts):gsub("\n", "")
-  local res = {}
-  local words = vim.split(line, ' ')
-  line = ''
-  for _, word in ipairs(words) do
-    if #word == 0 then goto continue end
-    if string.match(word, "[.]") and #word == 1 then
-      line =  line .. word
-    elseif (#line + #word) > 78 then
-      table.insert(res, line)
-      line =  word
-    elseif #line == 0 then
-      line = word
+  if link_text and link_dest then
+    local text = ("%s <%s>"):format(link_text, link_dest)
+    if _r.container_text then
+      _r.container_text = _r.container_text:gsub(lua_escape(link_orig), text)
     else
-      line = line .. " " .. word
+      vim.list_extend(_r.parsed_content, {text})
     end
-    ::continue::
   end
-  table.insert(res, line)
-  if in_block_quote>0 then
-    res = formatting.indent(res, 2)
-  end
-  -- adds newline after each paragraph
-  vim.list_extend(res, {''})
-  return res
+  return false
 end
 
-converter.methods = {
-  [tokens.link] = converter.link,
-  [tokens.image] = converter.link,
-  [tokens.table] = converter.table,
-  [tokens.heading] = converter.heading,
-  [tokens.list_item] = converter.generic,
-  [tokens.fenced_code_block] = converter.fenced_code_block,
+converter.container = function(node, content, _r)
+  _r.container_opts = _r.container_opts or { strip_newlines = true }
+  _r.container_ref = _r.container_ref and _r.container_ref+1 or 1
+  if _r.container_ref == 1 then
+    _r.container_text = get_node_text(node, content)
+  end
+  return true
+end
+
+converter.container_post = function(_, _, _r)
+  assert(_r.container_text and _r.container_ref)
+  _r.container_ref = _r.container_ref>1 and _r.container_ref-1 or nil
+  if not _r.container_ref then
+    vim.list_extend(_r.parsed_content,
+      make_paragraph({_r.container_text}, _r.container_opts))
+    _r.container_text = nil
+    _r.container_opts = nil
+  end
+end
+
+converter.block_quote = function(node, content, _r)
+  _r.in_block_quote = _r.in_block_quote and _r.in_block_quote+1 or 1
+  _r.container_opts = _r.container_opts or {
+    strip_newlines = true,
+    in_block_quote = _r.in_block_quote,
+  }
+  return converter.container(node, content, _r)
+end
+
+converter.block_quote_post = function(node, content, _r)
+  assert(_r.in_block_quote)
+  _r.in_block_quote = _r.in_block_quote>1 and _r.in_block_quote-1 or nil
+  return converter.container_post(node, content, _r)
+end
+
+converter.list = function(node, content, _r)
+  _r.in_list = _r.in_list and _r.in_list+1 or 1
+  _r.container_opts = _r.container_opts or {
+    strip_newlines = true,
+    in_list = _r.in_list
+  }
+  return converter.container(node, content, _r)
+end
+
+converter.list_post = function(node, content, _r)
+  assert(_r.in_list)
+  _r.in_list = _r.in_list>1 and _r.in_list-1 or nil
+  return converter.container_post(node, content, _r)
+end
+
+converter.passthrough = function() return true end
+
+converter.handlers = {
+  ['atx_heading']         = converter.heading,
+  ['link']                = converter.link,
+  ['image']               = converter.link,
+  ['inline_link']         = converter.link,
+  ['list']                = converter.passthrough,
+  ['strong_emphasis']     = converter.passthrough,
+  ['fenced_code_block']   = converter.fenced_code_block,
+  ['paragraph'] = {
+    pre = converter.container,
+    post = converter.container_post,
+  },
+  ['block_quote'] = {
+    pre = converter.block_quote,
+    post = converter.block_quote_post,
+  },
+  ['list_item'] = {
+    pre = converter.list,
+    post = converter.container_post,
+  },
 }
 
-converter.recursive_parser = function(parent_node, content, metadata, _r)
+converter.recursive_parser = function(parent_node, content, _r)
   if not _r or vim.tbl_isempty(_r) then
     -- recursion stack data
     _r = {
       header_count = 1,
-      in_paragraph = 0,
-      in_block_quote = 0,
       line_parts = {},
       parsed_content = {},
     }
@@ -163,47 +240,27 @@ converter.recursive_parser = function(parent_node, content, metadata, _r)
 
   for node in parent_node:iter_children() do
 
-    local node_symbol, node_type = node:symbol(), node:type()
-
-    if converter.methods[node_type] == false then
-      goto continue
+    local node_type = node:type()
+    local handler, handler_post = converter.handlers[node_type], nil
+    if type(handler) == 'table' then
+      handler_post = handler.post
+      handler = handler.pre
     end
 
-    -- paragraph, do not add to parsed_content
-    -- avoids adding '\n' to each text
-    if node_symbol == 124 then _r.in_paragraph = _r.in_paragraph+1 end
-    if node_symbol == 154 then _r.in_block_quote = _r.in_block_quote+1 end
-
+    -- print("processing ", node_symbol, node_type, handler, handler_post)
     local process_children = true
-    if converter.methods[node_type] then
-      _r.line_parts, process_children =
-        converter.methods[node_type](node, content, metadata, _r)
-    elseif node_symbol == 211 then
-      -- node_type == 'text'
-      local text = get_node_text(node, content)
-      vim.list_extend(_r.line_parts, {text, ' '})
+    if handler then
+      process_children = handler(node, content, _r)
+      if process_children and node:child_count() > 0 then
+        converter.recursive_parser(node, content, _r)
+      end
     end
-
-    if process_children and node:child_count() > 0 then
-      _r = converter.recursive_parser(node, content, metadata, _r)
+    if handler_post then
+      handler_post(node, content, _r)
     end
-
-    if node_symbol == 124 then _r.in_paragraph = _r.in_paragraph-1 end
-
-    -- print(_r.in_paragraph, node_symbol, node_type, get_node_text(node, content), "END")
-    -- _G.dump(parsed)
-
-    if _r.in_paragraph == 0 and not vim.tbl_isempty(_r.line_parts) then
-      vim.list_extend(_r.parsed_content, not process_children and _r.line_parts
-        or make_paragraph(_r.line_parts, _r.in_block_quote))
-      _r.line_parts = {}
-    end
-
-    if node_symbol == 154 then _r.in_block_quote = _r.in_block_quote-1 end
-
-    ::continue::
   end
-  return _r
+
+  return _r.parsed_content
 end
 
 return converter
