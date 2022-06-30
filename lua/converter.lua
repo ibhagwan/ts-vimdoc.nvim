@@ -92,7 +92,7 @@ converter.fenced_code_block = function(node, content, _r)
   else
     vim.list_extend(_r.parsed_content, lines)
   end
-  return false
+  return false, content
 end
 
 converter.heading = function(node, content, _r)
@@ -107,7 +107,7 @@ converter.heading = function(node, content, _r)
     end
   end
   local text = get_node_text(node, content)
-  text = string.gsub(text, "#+%s", ""):gsub("\n", "")
+  text = text:gsub("#+%s", ""):gsub("\n", "")
   local header_prefix = ''
   if metadata.header_count_lvl and header_level <= metadata.header_count_lvl then
     header_prefix = ("%d. "):format(_r.header_count)
@@ -128,7 +128,7 @@ converter.heading = function(node, content, _r)
     vim.list_extend(lines, {''})
   end
   vim.list_extend(_r.parsed_content, lines)
-  return false
+  return false, content
 end
 
 converter.link = function(node, content, _r)
@@ -151,7 +151,7 @@ converter.link = function(node, content, _r)
       vim.list_extend(_r.parsed_content, {text})
     end
   end
-  return false
+  return false, content
 end
 
 converter.container = function(node, content, _r)
@@ -160,7 +160,7 @@ converter.container = function(node, content, _r)
   if _r.container_ref == 1 then
     _r.container_text = get_node_text(node, content)
   end
-  return true
+  return node, content
 end
 
 converter.container_post = function(_, _, _r)
@@ -204,16 +204,29 @@ converter.list_post = function(node, content, _r)
   return converter.container_post(node, content, _r)
 end
 
-converter.passthrough = function() return true end
+
+converter.inline = function(node, content, _)
+ -- new parser for 'markdown_inline' see:
+  -- https://github.com/MDeiml/tree-sitter-markdown/issues/45
+  local node_text = get_node_text(node, content)
+  local inline_parser = vim.treesitter.get_string_parser(
+    node_text, "markdown_inline")
+  local tstree = inline_parser:parse()[1]
+  return tstree:root(), node_text
+end
+
+converter.passthrough = function(node, content, _) return node, content end
 
 converter.handlers = {
-  ['atx_heading']         = converter.heading,
-  ['link']                = converter.link,
-  ['image']               = converter.link,
-  ['inline_link']         = converter.link,
-  ['list']                = converter.passthrough,
-  ['strong_emphasis']     = converter.passthrough,
-  ['fenced_code_block']   = converter.fenced_code_block,
+  ['atx_heading']         = { pre = converter.heading },
+  ['link']                = { pre = converter.link },
+  ['image']               = { pre = converter.link },
+  ['inline_link']         = { pre = converter.link },
+  ['inline']              = { pre = converter.inline },
+  ['list']                = { pre = converter.passthrough },
+  ['section']             = { pre = converter.passthrough },
+  ['strong_emphasis']     = { pre = converter.passthrough },
+  ['fenced_code_block']   = { pre = converter.fenced_code_block },
   ['paragraph'] = {
     pre = converter.container,
     post = converter.container_post,
@@ -240,24 +253,30 @@ converter.recursive_parser = function(parent_node, content, _r)
 
   for node in parent_node:iter_children() do
 
-    local node_type = node:type()
-    local handler, handler_post = converter.handlers[node_type], nil
-    if type(handler) == 'table' then
-      handler_post = handler.post
-      handler = handler.pre
+    -- print("processing ", node:type(), node:named())
+
+    -- do not parse anonymous nodes
+    if not node:named() then
+      goto continue
     end
 
-    -- print("processing ", node_symbol, node_type, handler, handler_post)
-    local process_children = true
-    if handler then
-      process_children = handler(node, content, _r)
-      if process_children and node:child_count() > 0 then
+    local node_type = node:type()
+    local handler = converter.handlers[node_type]
+    if not handler then goto continue end
+
+    if handler.pre then
+      -- handler also replaces 'inline' nodes
+      -- with the new 'markdown_inline' parser
+      node, content = handler.pre(node, content, _r)
+      if node and node:child_count() > 0 then
         converter.recursive_parser(node, content, _r)
       end
     end
-    if handler_post then
-      handler_post(node, content, _r)
+    if handler.post then
+      handler.post(node, content, _r)
     end
+
+    ::continue::
   end
 
   return _r.parsed_content

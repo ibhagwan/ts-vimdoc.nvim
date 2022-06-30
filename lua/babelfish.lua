@@ -17,7 +17,7 @@ docgen.generate_readme = function(metadata)
   local contents = fp:read("*all")
   fp:close()
 
-  converter.handlers = vim.tbl_extend('force', converter.handlers, metadata.handlers)
+  converter.handlers = vim.tbl_extend('force', converter.handlers, metadata.handlers or {})
   converter.metadata = vim.tbl_extend('force', converter.metadata or {}, metadata)
 
   local parser = vim.treesitter.get_string_parser(contents, "markdown")
