@@ -28,10 +28,14 @@ it made very little sense to keep the fork dependency or the old name which
 makes it quite obscure and harder to find.
 
 There is much to be desired when it comes to optimizing this code, cleaning up
-the API, having proper unit testing, etc, but it's not on my priority list, as
-long as it keeps generating the vimdoc for fzf-lua
-<https://github.com/ibhagwan/fzf-lua> I'm content, nevertheless feel free to
-open issues if you wish and I will address these issues if I have time.
+the API, having proper unit testing, etc, but it's not high on my priority
+list, as long as it doesn't croak while generating a vimdoc, I'm content,
+nevertheless feel free to open issues and I will address them when I have
+time.
+
+I personally recommend also trying out `kdheepak/panvimdoc`
+<https://github.com/kdheepak/panvimdoc>, it uses `pandoc` style markdown and
+can also be set as a github CI action for the "fire and forget" approach.
 
 
                                                                               
