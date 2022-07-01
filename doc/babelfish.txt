@@ -114,7 +114,7 @@ Here is an example of using Babelfish in CI with github actions:
             env:
               GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
               COMMIT_MSG: |
-                [docgen] Update README.md
+                [docgen] CI: autogenerate vimdoc
                 skip-checks: true
             run: |
               git config user.email "actions@github"
