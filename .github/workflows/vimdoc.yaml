@@ -26,18 +26,17 @@ jobs:
             mv nvim.appimage ./build/nvim
           }
           mkdir -p ~/.local/share/nvim/site/pack/vendor/start
-          git clone --depth 1 https://github.com/ibhagwan/babelfish.nvim ~/.local/share/nvim/site/pack/vendor/start/babelfish.nvim
+          git clone --depth 1 https://github.com/ibhagwan/ts-vimdoc.nvim ~/.local/share/nvim/site/pack/vendor/start/ts-vimdoc.nvim
           git clone --depth 1 https://github.com/nvim-treesitter/nvim-treesitter ~/.local/share/nvim/site/pack/vendor/start/nvim-treesitter
-          ln -s $(pwd) ~/.local/share/nvim/site/pack/vendor/start || true
       - name: Build parser
         run: |
           export PACKPATH=$HOME/.local/share/nvim/site
-          ./build/nvim --headless -u ~/.local/share/nvim/site/pack/vendor/start/babelfish.nvim/scripts/init.lua -c "TSUpdateSync markdown" -c "TSUpdateSync markdown_inline" -c "qa"
+          ./build/nvim --headless -u ~/.local/share/nvim/site/pack/vendor/start/ts-vimdoc.nvim/scripts/init.lua -c "TSUpdateSync markdown" -c "TSUpdateSync markdown_inline" -c "qa"
       - name: Generating docs
         run: |
           export PATH="${PWD}/build/:${PATH}"
           export PACKPATH=$HOME/.local/share/nvim/site
-          ./build/nvim --headless -u ~/.local/share/nvim/site/pack/vendor/start/babelfish.nvim/scripts/init.lua  -c "lua require('babelfish').generate_readme({input_file='README.md', output_file='doc/babelfish.txt', project_name='babelfish'})" -c "qa"
+          ./build/nvim --headless -u ~/.local/share/nvim/site/pack/vendor/start/ts-vimdoc.nvim/scripts/init.lua  -c "lua require('ts-vimdoc').docgen({input_file='README.md', output_file='doc/ts-vimdoc.txt', project_name='ts-vimdoc'})" -c "qa"
       - name: Commit changes
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -48,6 +47,6 @@ jobs:
           git config user.email "actions@github"
           git config user.name "Github Actions"
           git remote set-url origin https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git
-          git add doc/babelfish.txt
+          git add doc/ts-vimdoc.txt
           # Only commit and push if we have changes
           git diff --quiet && git diff --staged --quiet || (git commit -m "${COMMIT_MSG}"; git push origin HEAD:${GITHUB_REF})

@@ -1,7 +1,7 @@
 local converter = require('converter')
-local docgen = {}
+local M = {}
 
-docgen.parse_markdown = function (parser, contents)
+M.parse_markdown = function (parser, contents)
   local tstree = parser:parse()[1]
   local parent_node = tstree:root()
 
@@ -12,7 +12,7 @@ docgen.parse_markdown = function (parser, contents)
   return final_text
 end
 
-docgen.generate_readme = function(metadata)
+M.docgen = function(metadata)
   local fp = assert(io.open(metadata.input_file))
   local contents = fp:read("*all")
   fp:close()
@@ -21,11 +21,11 @@ docgen.generate_readme = function(metadata)
   converter.metadata = vim.tbl_extend('force', converter.metadata or {}, metadata)
 
   local parser = vim.treesitter.get_string_parser(contents, "markdown")
-  local readme_data = docgen.parse_markdown(parser, contents)
+  local readme_data = M.parse_markdown(parser, contents)
 
   local writer = io.open(metadata.output_file, "w")
   writer:write(readme_data)
   writer:close()
 end
 
-return docgen
+return M

@@ -1,10 +1,9 @@
 # Introduction
+
 A tree-sitter based markdown -> vimdoc conversion tool.
 
-Originally, I believe, this plugin was written by
-[@mizlan](https://github.com/mizlan/babelfish.nvim), it was then forked and
-modified by @mjlbach, the original version required the markdown parser from
-@ikatyang
+Originally, this plugin was written by @mjlbach and was named `babelfish.nvim`,
+the original version required the markdown parser from @ikatyang
 [tree-sitter-markdown](https://github.com/ikatyang/tree-sitter-markdown).
 
 I was looking for a markdown -> vimdoc tool that wasn't dependent on anything
@@ -16,54 +15,96 @@ modified the logic quite substantially.
 Since then @MDeiml wrote
 [tree-sitter-markdown](https://github.com/MDeiml/tree-sitter-markdown) which
 is now split into 2 different parsers `markdown` and `markdown_inline`, now
-the default parsers for neovim-treesitter.
+the default parsers for neovim-treesitter, this required a total makeover of
+the original recursion logic.
 
 [@mjlbach is no longer associated with
 neovim](https://www.reddit.com/r/neovim/comments/vd0vim/anyone_know_whats_going_on_with_mjldach/)
-and also deleted all his neovim repositories (the former upstream repo) so it
-made very little sense to keep the fork dependency.
+and also deleted all of his neovim repositories (the former upstream repo) so
+it made very little sense to keep the fork dependency or the old name which
+makes it quite obscure and harder to find.
 
 There is much to be desired when it comes to optimizing this code, cleaning up
-the API, having proper unit testing, etc but it's not on my priority list, as
+the API, having proper unit testing, etc, but it's not on my priority list, as
 long as it keeps generating the vimdoc for
-[fzf-lua](https://github.com/ibhagwan/fzf-lua) I'm ok with it, nevertheless
-feel free to open issues if you wish and maybe someday I'll invest more time
-in this plugin.
-
+[fzf-lua](https://github.com/ibhagwan/fzf-lua) I'm content, nevertheless
+feel free to open issues if you wish and I will address these issues if I have
+time.
 
 ### Usage as a plugin
 
-If you use from within your *current* neovim session you first need to add
-tree-sitter-markdown to your init.lua (or init.vim with a heredoc):
+> **NOTE: CURRENTLY, REQUIRES USING NEOVIM-NIGHTLY**
+
+If you use from within your *current* neovim session you need to install
+[`nvim-treesitter`](https://github.com/nvim-treesitter/nvim-treesitter) and
+both markdown parsers `markdown` and `markdown_inline` (will be downloaded
+automatically by the treesitter plugin from
+[`tree-sitter-markdown`](https://github.com/MDeiml/tree-sitter-markdown)):
+
+Use your favorite plugin manager to install `nvim-treesitter` with the below
+configuration:
 
 ```lua
 require'nvim-treesitter.configs'.setup {
   ensure_installed = { "markdown", "markdown_inline" },
-  ...
 }
 ```
 
-Then install with `:TSUpdateSync`.
+And make sure both parsers are installed by running:
+```
+:TSUpdateSync markdown
+:TSUpdateSync markdown_inline
+```
 
 To generate vimdoc run:
-
 ```lua
-require('babelfish').generate_readme({
+require('ts-vimdoc').docgen({
 	input_file='README.md',
-	output_file = 'doc/babelfish.txt',
-	project_name='babelfish',
+	output_file = 'doc/ts-vimdoc.txt',
+	project_name='ts-vimdoc',
 })
+```
+
+### Usage as standalone
+
+If you don't wish to configure treesitter you can use the supplied
+`scripts/docgen.sh`, the script will create a temporary environment under
+`/tmp/ts-vimdoc.nvim` and run a neovim headless instance to perform the
+vimdoc conversion.
+
+The script requires 3 parameters (same as the `docgen` function): input file,
+output file and project name (to be used for generating headers):
+```sh
+❯ ./scripts/docgen.sh README.md doc/ts-vimdoc.txt ts-vimdoc
+```
+
+If you wish to make local changes to this project `docgen.sh` will link your
+local `ts-vimdoc.nvim` plugin as long as it's located in the same subtree of
+the plugin you wish to generate, for example, this is how I use it to generate
+fzf-lua vimdoc, I have both plugins downloaded in the same folder:
+
+```
+❯ ls -l
+drwxr-xr-x - bhagwan bhagwan 2022-06-30 20:47 fzf-lua
+drwxr-xr-x - bhagwan bhagwan 2022-07-01 06:14 ts-vimdoc.nvim
+```
+I can then run `docgen.sh` from inside the `fzf-lua` folder:
+```sh
+❯ ./ts-vimdoc.nvim/scripts/docgen.sh ./fzf-lua/README.md ./fzf-lua/doc/fzf-lua.txt fzf-lua
+```
+
+Or from inside the `fzf-lua` folder:
+```sh
+❯ cd fzf-lua
+❯ ../ts-vimdoc.nvim/scripts/docgen.sh README.md doc/fzf-lua.txt fzf-lua
 ```
 
 ### Usage in CI
 
-`./scripts/convert.sh` will convert download nvim-treesitter into a neovim 
-minimal environment under `/tmp/babelfish`  and convert README.md into
-./doc/babelfish.txt.
+Here is an example of using ts-vimdoc in CI with github action (used in this
+project):
 
-Here is an example of using Babelfish in CI with github actions:
-
-> **Note:** For the below to work you need to replace `doc/babelfish.txt`
+> **Note:** For the below to work you need to replace `doc/ts-vimdoc.txt`
 > (twice) and set `project_name=<your project>`.
 
 ```yaml
@@ -95,18 +136,17 @@ jobs:
             mv nvim.appimage ./build/nvim
           }
           mkdir -p ~/.local/share/nvim/site/pack/vendor/start
-          git clone --depth 1 https://github.com/ibhagwan/babelfish.nvim ~/.local/share/nvim/site/pack/vendor/start/babelfish.nvim
+          git clone --depth 1 https://github.com/ibhagwan/ts-vimdoc.nvim ~/.local/share/nvim/site/pack/vendor/start/ts-vimdoc.nvim
           git clone --depth 1 https://github.com/nvim-treesitter/nvim-treesitter ~/.local/share/nvim/site/pack/vendor/start/nvim-treesitter
-          ln -s $(pwd) ~/.local/share/nvim/site/pack/vendor/start || true
       - name: Build parser
         run: |
           export PACKPATH=$HOME/.local/share/nvim/site
-          ./build/nvim --headless -u ~/.local/share/nvim/site/pack/vendor/start/babelfish.nvim/scripts/init.lua -c "TSUpdateSync markdown" -c "TSUpdateSync markdown_inline" -c "qa"
+          ./build/nvim --headless -u ~/.local/share/nvim/site/pack/vendor/start/ts-vimdoc.nvim/scripts/init.lua -c "TSUpdateSync markdown" -c "TSUpdateSync markdown_inline" -c "qa"
       - name: Generating docs
         run: |
           export PATH="${PWD}/build/:${PATH}"
           export PACKPATH=$HOME/.local/share/nvim/site
-          ./build/nvim --headless -u ~/.local/share/nvim/site/pack/vendor/start/babelfish.nvim/scripts/init.lua  -c "lua require('babelfish').generate_readme({input_file='README.md', output_file='doc/babelfish.txt', project_name='babelfish'})" -c "qa"
+          ./build/nvim --headless -u ~/.local/share/nvim/site/pack/vendor/start/ts-vimdoc.nvim/scripts/init.lua  -c "lua require('ts-vimdoc').docgen({input_file='README.md', output_file='doc/ts-vimdoc.txt', project_name='ts-vimdoc'})" -c "qa"
       - name: Commit changes
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -117,7 +157,7 @@ jobs:
           git config user.email "actions@github"
           git config user.name "Github Actions"
           git remote set-url origin https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git
-          git add doc/babelfish.txt
+          git add doc/ts-vimdoc.txt
           # Only commit and push if we have changes
           git diff --quiet && git diff --staged --quiet || (git commit -m "${COMMIT_MSG}"; git push origin HEAD:${GITHUB_REF})
 ```
