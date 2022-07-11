@@ -144,7 +144,7 @@ converter.link = function(node, content, _r)
     end
   end
   if link_text and link_dest then
-    local text = ("%s <%s>"):format(link_text, link_dest)
+    local text = ("%s <%s>"):format(link_text, link_dest):gsub("%%", "%%%%")
     if _r.container_text then
       _r.container_text = _r.container_text:gsub(lua_escape(link_orig), text)
     else
