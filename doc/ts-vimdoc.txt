@@ -21,11 +21,10 @@ different parsers `markdown` and `markdown_inline`, now the default parsers
 for neovim-treesitter, this required a total makeover of the original
 recursion logic.
 
-@mjlbach is no longer associated with neovim
-<https://www.reddit.com/r/neovim/comments/vd0vim/anyone_know_whats_going_on_with_mjldach/>
-and also deleted all of his neovim repositories (the former upstream repo) so
-it made very little sense to keep the fork dependency or the old name which
-makes it quite obscure and harder to find.
+@mjlbach is no longer associated with neovim and also deleted all of his
+neovim repositories (the former upstream repo) so it made very little sense to
+keep the fork dependency or the old name which makes it quite obscure and
+harder to find.
 
 There is much to be desired when it comes to optimizing this code, cleaning up
 the API, having proper unit testing, etc, but it's not high on my priority
