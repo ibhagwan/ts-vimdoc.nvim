@@ -231,6 +231,10 @@ converter.handlers = {
     pre = converter.container,
     post = converter.container_post,
   },
+  ['pipe_table'] = {
+    pre = converter.container,
+    post = converter.container_post,
+  },
   ['block_quote'] = {
     pre = converter.block_quote,
     post = converter.block_quote_post,
