@@ -35,7 +35,7 @@ I personally recommend also trying out
 
 ### Usage as a plugin
 
-> **NOTE: CURRENTLY, REQUIRES USING NEOVIM-NIGHTLY**
+> **NOTE: CURRENTLY, REQUIRES USING NEOVIM-NIGHTLY (>=0.8)**
 
 If you use from within your *current* neovim session you need to install
 [`nvim-treesitter`](https://github.com/nvim-treesitter/nvim-treesitter) and

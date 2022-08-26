@@ -2,12 +2,15 @@
 set -eu
 trap 'echo "EXIT detected with exit status $?"' EXIT
 
-# script working directory
+# OS temp dir & script working dir
+TEMPDIR=$(dirname $(mktemp -u))
 BASEDIR=$(cd "$(dirname "$0")" ; pwd -P)
 
-tmp_dir=/tmp/ts-vimdoc.nvim
+plug_name=ts-vimdoc.nvim
+plug_dir="${BASEDIR}/../../${plug_name}"
+tmp_dir="${TEMPDIR}/${plug_name}.tmp"
 tmp_rtp="${tmp_dir}/nvim/site/pack/vendor/start"
-plug_dir="${BASEDIR}/../../ts-vimdoc.nvim"
+packpath="${tmp_dir}/nvim/site"
 
 # If you're not using nightly built
 nightly=/shared/bhagwan/Applications/nvim.appimage
@@ -43,16 +46,16 @@ download_plugin "nvim-treesitter" "nvim-treesitter"
 
 # if exists, link to local folder so we can test local changes
 if [ -d "${plug_dir}" ]; then
-    echo "Using local plugin ts-vimdoc.nvim from '${plug_dir}'"
+    echo "Using local plugin ${plug_name} from '${plug_dir}'"
     ln -fs ${plug_dir} ${tmp_rtp}
 else
     download_plugin "ibhagwan" "ts-vimdoc.nvim"
 fi
 
 # install the markdown parsers
-HOME=/tmp ${nvim} --headless -u ${tmp_rtp}/ts-vimdoc.nvim/scripts/init.lua -c "TSUpdateSync markdown" -c "TSUpdateSync markdown_inline" -c "qa"
+HOME=${TEMPDIR} PACKPATH=${packpath} ${nvim} --headless -u ${tmp_rtp}/ts-vimdoc.nvim/scripts/init.lua -c "TSUpdateSync markdown" -c "TSUpdateSync markdown_inline" -c "qa"
 
 # finally, generate the vimdoc
-HOME=/tmp ${nvim} --headless -u ${tmp_rtp}/ts-vimdoc.nvim/scripts/init.lua -c "lua require('ts-vimdoc').docgen({input_file='${1}', output_file = '${2}', project_name='${3}'})" -c "qa"
+HOME=${TEMPDIR} PACKPATH=${packpath} ${nvim} --headless -u ${tmp_rtp}/ts-vimdoc.nvim/scripts/init.lua -c "lua require('ts-vimdoc').docgen({input_file='${1}', output_file = '${2}', project_name='${3}'})" -c "qa"
 
 echo "\nDone."
