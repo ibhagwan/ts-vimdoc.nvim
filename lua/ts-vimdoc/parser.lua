@@ -1,5 +1,5 @@
 local Object = require("ts-vimdoc.class")
-local handlers = require('ts-vimdoc.handlers')
+local handlers = require("ts-vimdoc.handlers")
 
 local Parser = {}
 
@@ -25,28 +25,28 @@ function Parser:parse()
 end
 
 Parser.handlers = {
-  ['atx_heading']         = { pre = handlers.heading },
-  ['link']                = { pre = handlers.link },
-  ['image']               = { pre = handlers.link },
-  ['inline_link']         = { pre = handlers.link },
-  ['inline']              = { pre = handlers.inline },
-  ['list']                = { pre = handlers.passthrough },
-  ['section']             = { pre = handlers.passthrough },
-  ['strong_emphasis']     = { pre = handlers.passthrough },
-  ['fenced_code_block']   = { pre = handlers.fenced_code_block },
-  ['paragraph'] = {
+  ["atx_heading"]       = { pre = handlers.heading },
+  ["link"]              = { pre = handlers.link },
+  ["image"]             = { pre = handlers.link },
+  ["inline_link"]       = { pre = handlers.link },
+  ["inline"]            = { pre = handlers.inline },
+  ["list"]              = { pre = handlers.passthrough },
+  ["section"]           = { pre = handlers.passthrough },
+  ["strong_emphasis"]   = { pre = handlers.passthrough },
+  ["fenced_code_block"] = { pre = handlers.fenced_code_block },
+  ["paragraph"]         = {
     pre = handlers.container,
     post = handlers.container_post,
   },
-  ['pipe_table'] = {
+  ["pipe_table"]        = {
     pre = handlers.container,
     post = handlers.container_post,
   },
-  ['block_quote'] = {
+  ["block_quote"]       = {
     pre = handlers.block_quote,
     post = handlers.block_quote_post,
   },
-  ['list_item'] = {
+  ["list_item"]         = {
     pre = handlers.list,
     post = handlers.container_post,
   },

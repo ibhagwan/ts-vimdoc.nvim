@@ -9,21 +9,21 @@ end
 local M = {}
 
 function M.info(msg)
-  vim.cmd('echohl Directory')
+  vim.cmd("echohl Directory")
   M._echo_multiline("[ts-vimdoc] " .. msg)
-  vim.cmd('echohl None')
+  vim.cmd("echohl None")
 end
 
 function M.warn(msg)
-  vim.cmd('echohl WarningMsg')
+  vim.cmd("echohl WarningMsg")
   M._echo_multiline("[ts-vimdoc] " .. msg)
-  vim.cmd('echohl None')
+  vim.cmd("echohl None")
 end
 
 function M.err(msg)
-  vim.cmd('echohl ErrorMsg')
+  vim.cmd("echohl ErrorMsg")
   M._echo_multiline("[ts-vimdoc] " .. msg)
-  vim.cmd('echohl None')
+  vim.cmd("echohl None")
 end
 
 return M

@@ -1,12 +1,12 @@
-local formatting = require('ts-vimdoc.formatting')
-local get_node_text = require('vim.treesitter.query').get_node_text
+local formatting = require("ts-vimdoc.formatting")
+local get_node_text = require("vim.treesitter.query").get_node_text
 
 local function lua_escape(str)
   -- escape all lua special chars
   -- ( ) % . + - * [ ? ^ $
   if not str then return str end
-  return str:gsub('[%(%)%.%+%-%*%[%?%^%$%%]', function(x)
-    return '%' .. x
+  return str:gsub("[%(%)%.%+%-%*%[%?%^%$%%]", function(x)
+    return "%" .. x
   end)
 end
 
@@ -18,7 +18,7 @@ local make_paragraph = function(line_parts, opts)
   end
   -- table hack
   local raw_wrapped, is_table = text:gsub("^|(.*)|\n", "<raw>|%1|<NL></raw>")
-  if is_table and is_table>0 then
+  if is_table and is_table > 0 then
     text = raw_wrapped:gsub("<NL></raw>", "</raw>")
   end
   local res = {}
@@ -27,28 +27,29 @@ local make_paragraph = function(line_parts, opts)
   local pattern = opts.strip_newlines and "%s\n" or "%s"
   local function insert_line(l)
     if not l then return end
-    if opts.in_block_quote and opts.in_block_quote>0 then
-      l = string.rep(" ", opts.in_block_quote*2) .. line
+    if opts.in_block_quote and opts.in_block_quote > 0 then
+      l = string.rep(" ", opts.in_block_quote * 2) .. line
     end
     table.insert(res, l)
     return nil
   end
+
   repeat
-    start_idx = text:find("[^"..pattern.."]+", start_idx)
+    start_idx = text:find("[^" .. pattern .. "]+", start_idx)
     if start_idx then
       if text:sub(start_idx):match("^<raw>") then
-        if line and #line>0 then
+        if line and #line > 0 then
           -- first insert the leftover line
           line = insert_line(line)
         end
         end_idx = text:find("</raw>", start_idx)
-        local raw = text:sub(start_idx+5, end_idx-1):gsub("<NL>", "\n")
-        end_idx = end_idx+6
+        local raw = text:sub(start_idx + 5, end_idx - 1):gsub("<NL>", "\n")
+        end_idx = end_idx + 6
         -- insert raw, no block quote indent
         table.insert(res, raw)
       else
-        end_idx = text:find("["..pattern.."]", start_idx)
-        local word = text:sub(start_idx, end_idx and end_idx-1 or #text)
+        end_idx = text:find("[" .. pattern .. "]", start_idx)
+        local word = text:sub(start_idx, end_idx and end_idx - 1 or #text)
         if not line then
           line = word
         elseif (#line + #word + 1) > 78 then
@@ -60,12 +61,12 @@ local make_paragraph = function(line_parts, opts)
       end
       start_idx = end_idx
     end
-  until (not start_idx or start_idx>#text-1)
+  until (not start_idx or start_idx > #text - 1)
   -- insert leftover line
   insert_line(line)
   if not opts.in_list or not is_table then
     -- newline after paragraphs
-    vim.list_extend(res, {''})
+    vim.list_extend(res, { "" })
   end
   return res
 end
@@ -76,7 +77,7 @@ M.passthrough = function(node, content, _) return node, content end
 
 M.container = function(node, content, _r)
   _r.container_opts = _r.container_opts or { strip_newlines = true }
-  _r.container_ref = _r.container_ref and _r.container_ref+1 or 1
+  _r.container_ref = _r.container_ref and _r.container_ref + 1 or 1
   if _r.container_ref == 1 then
     _r.container_text = get_node_text(node, content)
   end
@@ -85,17 +86,17 @@ end
 
 M.container_post = function(_, _, _r)
   assert(_r.container_text and _r.container_ref)
-  _r.container_ref = _r.container_ref>1 and _r.container_ref-1 or nil
+  _r.container_ref = _r.container_ref > 1 and _r.container_ref - 1 or nil
   if not _r.container_ref then
     vim.list_extend(_r.parsed_content,
-      make_paragraph({_r.container_text}, _r.container_opts))
+      make_paragraph({ _r.container_text }, _r.container_opts))
     _r.container_text = nil
     _r.container_opts = nil
   end
 end
 
 M.block_quote = function(node, content, _r)
-  _r.in_block_quote = _r.in_block_quote and _r.in_block_quote+1 or 1
+  _r.in_block_quote = _r.in_block_quote and _r.in_block_quote + 1 or 1
   _r.container_opts = _r.container_opts or {
     strip_newlines = true,
     in_block_quote = _r.in_block_quote,
@@ -105,12 +106,12 @@ end
 
 M.block_quote_post = function(node, content, _r)
   assert(_r.in_block_quote)
-  _r.in_block_quote = _r.in_block_quote>1 and _r.in_block_quote-1 or nil
+  _r.in_block_quote = _r.in_block_quote > 1 and _r.in_block_quote - 1 or nil
   return M.container_post(node, content, _r)
 end
 
 M.list = function(node, content, _r)
-  _r.in_list = _r.in_list and _r.in_list+1 or 1
+  _r.in_list = _r.in_list and _r.in_list + 1 or 1
   _r.container_opts = _r.container_opts or {
     strip_newlines = true,
     in_list = _r.in_list
@@ -120,12 +121,12 @@ end
 
 M.list_post = function(node, content, _r)
   assert(_r.in_list)
-  _r.in_list = _r.in_list>1 and _r.in_list-1 or nil
+  _r.in_list = _r.in_list > 1 and _r.in_list - 1 or nil
   return M.container_post(node, content, _r)
 end
 
 M.inline = function(node, content, _)
- -- new parser for 'markdown_inline' see:
+  -- new parser for 'markdown_inline' see:
   -- https://github.com/MDeiml/tree-sitter-markdown/issues/45
   local node_text = get_node_text(node, content)
   local inline_parser = vim.treesitter.get_string_parser(
@@ -139,10 +140,10 @@ M.link = function(node, content, _r)
   local link_orig = get_node_text(node, content)
   for child in node:iter_children() do
     local child_type = child:type()
-    if child_type == 'link_text' or
-       child_type == 'image_description' then
+    if child_type == "link_text" or
+        child_type == "image_description" then
       link_text = get_node_text(child, content)
-    elseif child_type == 'link_destination' then
+    elseif child_type == "link_destination" then
       link_dest = get_node_text(child, content)
     end
   end
@@ -151,7 +152,7 @@ M.link = function(node, content, _r)
     if _r.container_text then
       _r.container_text = _r.container_text:gsub(lua_escape(link_orig), text)
     else
-      vim.list_extend(_r.parsed_content, {text})
+      vim.list_extend(_r.parsed_content, { text })
     end
   end
   return false, content
@@ -160,18 +161,18 @@ end
 M.fenced_code_block = function(node, content, _r)
   local text_orig = get_node_text(node, content)
   for child_node in node:iter_children() do
-    if child_node:type() == 'code_fence_content' then
+    if child_node:type() == "code_fence_content" then
       node = child_node
     end
   end
   local codeblock_content = vim.split(get_node_text(node, content):gsub("\n>?%s-$", ""), "\n")
   codeblock_content = formatting.indent(codeblock_content, 4)
   local lines = {}
-  vim.list_extend(lines, {">"})
+  vim.list_extend(lines, { ">" })
   vim.list_extend(lines, codeblock_content)
-  vim.list_extend(lines, {"<"})
+  vim.list_extend(lines, { "<" })
   if _r.container_text then
-    local text = "<raw>"..table.concat(lines, "<NL>").."</raw>"
+    local text = "<raw>" .. table.concat(lines, "<NL>") .. "</raw>"
     _r.container_text = _r.container_text:gsub(
       lua_escape(text_orig), text)
   else
@@ -185,15 +186,15 @@ M.heading = function(node, content, _r)
   local metadata = _r.metadata
   for child in node:iter_children() do
     local child_type = child:type()
-    if child_type == 'atx_h2_marker' then
+    if child_type == "atx_h2_marker" then
       header_level = 2
-    elseif child_type == 'atx_h3_marker' then
+    elseif child_type == "atx_h3_marker" then
       header_level = 3
     end
   end
   local text = get_node_text(node, content)
   text = text:gsub("#+%s", ""):gsub("\n", "")
-  local header_prefix = ''
+  local header_prefix = ""
   if metadata.header_count_lvl and header_level <= metadata.header_count_lvl then
     header_prefix = ("%d. "):format(_r.header_count)
     _r.header_count = _r.header_count + 1
@@ -205,12 +206,12 @@ M.heading = function(node, content, _r)
   text = string.format("%s%s%s", left, padding, right)
   local lines = {}
   if not vim.tbl_isempty(_r.parsed_content) then
-    vim.list_extend(lines, {''})
+    vim.list_extend(lines, { "" })
   end
   vim.list_extend(lines,
-    {formatting.style_elements.header_break[header_level], text, ''})
+    { formatting.style_elements.header_break[header_level], text, "" })
   if header_level <= 2 then
-    vim.list_extend(lines, {''})
+    vim.list_extend(lines, { "" })
   end
   vim.list_extend(_r.parsed_content, lines)
   return false, content
