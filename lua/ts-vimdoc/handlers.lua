@@ -160,15 +160,23 @@ end
 
 M.fenced_code_block = function(node, content, _r)
   local text_orig = get_node_text(node, content)
+  local language = ""
   for child_node in node:iter_children() do
     if child_node:type() == "code_fence_content" then
       node = child_node
+    end
+    if child_node:type() == "info_string" then
+      for c in child_node:iter_children() do
+        if c:type() == "language" then
+          language = get_node_text(c, content)
+        end
+      end
     end
   end
   local codeblock_content = vim.split(get_node_text(node, content):gsub("\n>?%s-$", ""), "\n")
   codeblock_content = formatting.indent(codeblock_content, 4)
   local lines = {}
-  vim.list_extend(lines, { ">" })
+  vim.list_extend(lines, { ">" .. language })
   vim.list_extend(lines, codeblock_content)
   vim.list_extend(lines, { "<" })
   if _r.container_text then
