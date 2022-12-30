@@ -111,11 +111,13 @@ Or from inside the `fzf-lua` folder:
                                                                               
 USAGE IN CI                                            *ts-vimdoc-usage-in-ci*
 
-Here is an example of using ts-vimdoc in CI with github action (used in this
-project):
+Below is an example of using ts-vimdoc in CI with github action with fzf-lua
+<https://github.com/ibhagwan/fzf-lua>:
 
-  **Note:** For the below to work you need to replace `doc/ts-vimdoc.txt`
-  (twice) and set `project_name=<your project>`.
+  **TO USE WITH YOUR PROJECT:** - Set the correct branch, currently set to
+  `main` (line 6) - Replace `doc/fzf-lua.txt` with `<output path of your
+  vimdoc>` (lines 40,51) - Replace `project_name='fzf-lua'` with
+  `project_name='<your project>'` (line 40)
 
 >yaml
     name: vimdoc
@@ -123,7 +125,7 @@ project):
     on:
       push:
         branches:
-          - master
+          - main
     
     jobs:
       vimdocgen:
@@ -157,7 +159,7 @@ project):
             run: |
               export PATH="${PWD}/build/:${PATH}"
               export PACKPATH=$HOME/.local/share/nvim/site
-              ./build/nvim --headless -u ~/.local/share/nvim/site/pack/vendor/start/ts-vimdoc.nvim/scripts/init.lua  -c "lua require('ts-vimdoc').docgen({input_file='README.md', output_file='doc/ts-vimdoc.txt', project_name='ts-vimdoc'})" -c "qa"
+              ./build/nvim --headless -u ~/.local/share/nvim/site/pack/vendor/start/ts-vimdoc.nvim/scripts/init.lua  -c "lua require('ts-vimdoc').docgen({input_file='README.md', output_file='doc/fzf-lua.txt', project_name='fzf-lua'})" -c "qa"
           - name: Commit changes
             env:
               GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -168,7 +170,7 @@ project):
               git config user.email "actions@github"
               git config user.name "Github Actions"
               git remote set-url origin https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git
-              git add doc/ts-vimdoc.txt
+              git add doc/fzf-lua.txt
               # Only commit and push if we have changes
               git diff --quiet && git diff --staged --quiet || (git commit -m "${COMMIT_MSG}"; git push origin HEAD:${GITHUB_REF})
 <
