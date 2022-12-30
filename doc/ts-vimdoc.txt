@@ -51,7 +51,7 @@ automatically by the treesitter plugin from `tree-sitter-markdown`
 Use your favorite plugin manager to install `nvim-treesitter` with the below
 configuration:
 
->
+>lua
     require'nvim-treesitter.configs'.setup {
       ensure_installed = { "markdown", "markdown_inline" },
     }
@@ -64,7 +64,7 @@ And make sure both parsers are installed by running:
 <
 To generate vimdoc run:
 
->
+>lua
     require('ts-vimdoc').docgen({
     	input_file='README.md',
     	output_file = 'doc/ts-vimdoc.txt',
@@ -83,7 +83,7 @@ conversion.
 The script requires 3 parameters (same as the `docgen` function): input file,
 output file and project name (to be used for generating headers):
 
->
+>sh
     ❯ ./scripts/docgen.sh README.md doc/ts-vimdoc.txt ts-vimdoc
 <
 If you wish to make local changes to this project `docgen.sh` will link your
@@ -98,12 +98,12 @@ fzf-lua vimdoc, I have both plugins downloaded in the same folder:
 <
 I can then run `docgen.sh` from inside the `fzf-lua` folder:
 
->
+>sh
     ❯ ./ts-vimdoc.nvim/scripts/docgen.sh ./fzf-lua/README.md ./fzf-lua/doc/fzf-lua.txt fzf-lua
 <
 Or from inside the `fzf-lua` folder:
 
->
+>sh
     ❯ cd fzf-lua
     ❯ ../ts-vimdoc.nvim/scripts/docgen.sh README.md doc/fzf-lua.txt fzf-lua
 <
@@ -117,7 +117,7 @@ project):
   **Note:** For the below to work you need to replace `doc/ts-vimdoc.txt`
   (twice) and set `project_name=<your project>`.
 
->
+>yaml
     name: vimdoc
     
     on:
@@ -136,7 +136,8 @@ project):
             with:
               path: build
               key: ${{ runner.os }}-appimage-${{ hashFiles('todays-date') }}
-    
+          - name: Install FUSE
+            run: sudo apt-get install -y libfuse2
           - name: Setup neovim nightly and install plugins
             run: |
               test -d build || {
