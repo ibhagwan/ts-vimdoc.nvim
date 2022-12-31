@@ -1,4 +1,5 @@
 local Object = require("ts-vimdoc.class")
+local format = require("ts-vimdoc.formatting")
 local handlers = require("ts-vimdoc.handlers")
 
 local Parser = {}
@@ -17,11 +18,41 @@ function Parser:parse()
   local tstree = tsparser:parse()[1]
   local parent_node = tstree:root()
 
-  -- local formatted_file = self:recursive_parser(parent_node, self.content)
-  local formatted_file = self:recurse(parent_node, self.content)
+  local formatted_file, context = self:recurse(parent_node, self.content)
+  if self.metadata.table_of_contents ~= false then
+    formatted_file = self:insert_table_of_contents(formatted_file, context.headers)
+  end
+  table.insert(formatted_file, 1, self:header_line())
+  table.insert(formatted_file, 2, "")
   table.insert(formatted_file, "\nvim:tw=78:ts=8:ft=help:norl:")
 
   return table.concat(formatted_file, "\n")
+end
+
+function Parser:header_line()
+  return format.line3(
+    string.format("*%s*", vim.fn.fnamemodify(self.metadata.output_file, ":t")),
+    self.metadata.version,
+    os.date("Last change: %Y %B %d"))
+end
+
+function Parser:insert_table_of_contents(tbl, headers)
+  if not headers or vim.tbl_isempty(headers) then
+    return tbl
+  end
+  table.insert(tbl, 1, string.rep("=", 78))
+  table.insert(tbl, 2, format.line3("Table of Contents", nil,
+    string.format("*%s-table-of-contents*", self.metadata.project_name)))
+  table.insert(tbl, 3, "")
+  local start_idx = 3
+  for i, h in ipairs(headers) do
+    local tag = h.tag:gsub("^*", "|"):gsub("*$", "|")
+    table.insert(tbl, start_idx + i, format.line3(h.title, nil, tag, "."))
+    -- local prefix = string.rep(".", 2 * (h.lvl - 1))
+    -- table.insert(tbl, start_idx + i, format.line3(prefix .. h.title, nil, tag))
+  end
+  table.insert(tbl, start_idx + #headers + 1, "")
+  return tbl
 end
 
 Parser.handlers = {
@@ -57,6 +88,7 @@ function Parser:recurse(parent_node, content, _r)
     -- recursion stack data
     _r = {
       metadata = self.metadata,
+      headers = {},
       header_count = 1,
       parsed_content = {},
     }
@@ -90,7 +122,7 @@ function Parser:recurse(parent_node, content, _r)
     ::continue::
   end
 
-  return _r.parsed_content
+  return _r.parsed_content, _r
 end
 
 return Parser
