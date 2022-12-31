@@ -1,4 +1,14 @@
+*ts-vimdoc.txt*        For Neovim >= 0.8.0       Last change: 2022 December 31
+
 ==============================================================================
+Table of Contents                                *ts-vimdoc-table-of-contents*
+
+Introduction ........................................ |ts-vimdoc-introduction|
+Usage as a plugin .............................. |ts-vimdoc-usage-as-a-plugin|
+Usage as standalone .......................... |ts-vimdoc-usage-as-standalone|
+Usage in CI .......................................... |ts-vimdoc-usage-in-ci|
+
+------------------------------------------------------------------------------
 INTRODUCTION                                          *ts-vimdoc-introduction*
 
 
@@ -159,7 +169,7 @@ Below is an example of using ts-vimdoc in CI with github action with fzf-lua
             run: |
               export PATH="${PWD}/build/:${PATH}"
               export PACKPATH=$HOME/.local/share/nvim/site
-              ./build/nvim --headless -u ~/.local/share/nvim/site/pack/vendor/start/ts-vimdoc.nvim/scripts/init.lua  -c "lua require('ts-vimdoc').docgen({input_file='README.md', output_file='doc/fzf-lua.txt', project_name='fzf-lua'})" -c "qa"
+              ./build/nvim --headless -u ~/.local/share/nvim/site/pack/vendor/start/ts-vimdoc.nvim/scripts/init.lua  -c "lua require('ts-vimdoc').docgen({input_file='README.md', output_file='doc/fzf-lua.txt', project_name='fzf-lua', version='For Neovim >= 0.8.0'})" -c "qa"
           - name: Commit changes
             env:
               GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
