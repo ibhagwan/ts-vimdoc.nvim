@@ -1,4 +1,4 @@
-*ts-vimdoc.txt*        For Neovim >= 0.8.0       Last change: 2022 December 31
+*ts-vimdoc.txt*        For Neovim >= 0.8.0        Last change: 2023 January 05
 
 ==============================================================================
 Table of Contents                                *ts-vimdoc-table-of-contents*
@@ -141,10 +141,12 @@ Below is an example of using ts-vimdoc in CI with github action with fzf-lua
       vimdocgen:
         runs-on: [ubuntu-latest]
         steps:
-          - uses: actions/checkout@v2
+          - uses: actions/checkout@v3
+            with:
+              fetch-depth: 0
           - run: date +%F > todays-date
           - name: Restore cache for today's nightly.
-            uses: actions/cache@v2
+            uses: actions/cache@v3
             with:
               path: build
               key: ${{ runner.os }}-appimage-${{ hashFiles('todays-date') }}
