@@ -43,7 +43,7 @@ function Parser:header_line()
       "log",
       "-1",
       [[--pretty=format:"%cI"]],
-      self.metadata.input_file,
+      vim.fn.fnamemodify(self.metadata.input_file, ":t"),
     })
     if vim.v.shell_error == 0 then
       local year, month, day = result:match("(%d+)%-(%d+)%-(%d+)")
