@@ -211,6 +211,8 @@ M.heading = function(node, content, _r)
   end
   local left = string.format("%s%s", header_prefix, string.upper(text))
   local right = string.lower(string.gsub(text, "%s", "-"))
+  -- strip surrounding specials
+  right = right:gsub([[^%*?'?"?`?]], ""):gsub([[%*?'?"?`?$]], "")
   right = string.format("*%s-%s*", metadata.project_name, right)
   if header_level >= metadata.table_of_contents_lvl then
     vim.list_extend(_r.headers, { { title = text, tag = right, lvl = header_level } })
