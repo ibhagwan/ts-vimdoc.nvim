@@ -30,10 +30,30 @@ function Parser:parse()
 end
 
 function Parser:header_line()
+  -- if this remains nil, localtime will be used
+  local last_commit_timestamp = nil
+  -- Attempt to acquire the last commit modification
+  -- date for the input file from the git repo
+  if not self.metadata.last_change_from_now then
+    local result = vim.fn.system({
+      "git",
+      "-C",
+      vim.fn.fnamemodify(self.metadata.input_file, ":h"),
+      "--no-pager",
+      "log",
+      "-1",
+      [[--pretty=format:"%cI"]],
+      self.metadata.input_file,
+    })
+    if vim.v.shell_error == 0 then
+      local year, month, day = result:match("(%d+)%-(%d+)%-(%d+)")
+      last_commit_timestamp = os.time({ year = year, month = month, day = day })
+    end
+  end
   return format.line3(
     string.format("*%s*", vim.fn.fnamemodify(self.metadata.output_file, ":t")),
     self.metadata.version,
-    os.date("Last change: %Y %B %d"))
+    os.date("Last change: %Y %B %d", last_commit_timestamp))
 end
 
 function Parser:insert_table_of_contents(tbl, headers)
