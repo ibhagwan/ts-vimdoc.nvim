@@ -1,5 +1,5 @@
 local formatting = require("ts-vimdoc.formatting")
-local get_node_text = require("vim.treesitter.query").get_node_text
+local get_node_text = require("vim.treesitter").get_node_text
 
 local function lua_escape(str)
   -- escape all lua special chars
