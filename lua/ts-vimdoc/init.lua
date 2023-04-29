@@ -1,4 +1,3 @@
-local utils = require("ts-vimdoc.utils")
 local parser = require("ts-vimdoc.parser")
 local M = {}
 
@@ -23,7 +22,7 @@ M.docgen = function(metadata)
 
   -- print("new contents:", vimdoc)
 
-  local writer = io.open(metadata.output_file, "w")
+  local writer = assert(io.open(metadata.output_file, "w"))
   writer:write(vimdoc)
   writer:close()
 end
