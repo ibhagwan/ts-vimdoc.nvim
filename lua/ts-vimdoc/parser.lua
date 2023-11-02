@@ -45,7 +45,7 @@ function Parser:header_line()
       [[--pretty=format:"%cI"]],
       vim.fn.fnamemodify(self.metadata.input_file, ":t"),
     })
-    if vim.v.shell_error == 0 then
+    if vim.v.shell_error == 0 and #result > 0 then
       local year, month, day = result:match("(%d+)%-(%d+)%-(%d+)")
       last_commit_timestamp = os.time({ year = year, month = month, day = day })
     end
