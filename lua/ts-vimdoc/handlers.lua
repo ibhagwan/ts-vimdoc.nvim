@@ -200,6 +200,8 @@ M.heading = function(node, content, _r)
       header_level = 3
     elseif child_type == "atx_h4_marker" then
       header_level = 4
+    elseif child_type == "atx_h5_marker" then
+      header_level = 5
     end
   end
   local text = get_node_text(node, content)
@@ -209,12 +211,15 @@ M.heading = function(node, content, _r)
     header_prefix = ("%d. "):format(_r.header_count)
     _r.header_count = _r.header_count + 1
   end
-  local left = string.format("%s%s", header_prefix, string.upper(text))
+  -- Only upper headers we generate table-of-contents from
+  local upper = header_level <= metadata.table_of_contents_lvl_max
+  local left = string.format("%s%s", header_prefix, upper and string.upper(text) or text)
   local right = string.lower(string.gsub(text, "%s", "-"))
   -- strip surrounding specials
   right = right:gsub([[^%*?'?"?`?]], ""):gsub([[%*?'?"?`?$]], "")
   right = string.format("*%s-%s*", metadata.project_name, right)
-  if header_level >= metadata.table_of_contents_lvl then
+  if header_level >= metadata.table_of_contents_lvl_min
+      and header_level <= metadata.table_of_contents_lvl_max then
     vim.list_extend(_r.headers, { { title = text, tag = right, lvl = header_level } })
   end
   local padding = string.rep(" ", 78 - #left - #right)

@@ -4,7 +4,8 @@ local M = {}
 M.docgen = function(metadata)
   metadata = metadata or {}
   metadata.version = metadata.version and string.format("%s", metadata.version) or ""
-  metadata.table_of_contents_lvl = tonumber(metadata.table_of_contents_lvl) or 2
+  metadata.table_of_contents_lvl_min = tonumber(metadata.table_of_contents_lvl_min) or 2
+  metadata.table_of_contents_lvl_max = tonumber(metadata.table_of_contents_lvl_max) or 5
   vim.validate({
     input_file = { metadata.input_file, "string" },
     output_file = { metadata.output_file, "string" },
