@@ -25,7 +25,7 @@ download_plugin() {
     folder="${tmp_rtp}/${2}"
     if [ ! -d $folder ]; then
         echo "Downloading '${repo}' into '${folder}..."
-        git clone --depth 1 ${repo} ${folder}
+        git clone -b master --depth 1 ${repo} ${folder}
     else
         echo "Updating '${repo}'..."
         git -C "${folder}" pull --rebase
