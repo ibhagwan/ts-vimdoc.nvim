@@ -47,15 +47,17 @@ Use your favorite plugin manager to install `nvim-treesitter` with the below
 configuration:
 
 ```lua
-require'nvim-treesitter.configs'.setup {
-  ensure_installed = { "markdown", "markdown_inline" },
+require "nvim-treesitter".setup {}
+require "nvim-treesitter".install {
+  "markdown",
+  "markdown_inline",
 }
 ```
 
 And make sure both parsers are installed by running:
 ```
-:TSUpdateSync markdown
-:TSUpdateSync markdown_inline
+:TSUpdate markdown
+:TSUpdate markdown_inline
 ```
 
 To generate vimdoc run:
