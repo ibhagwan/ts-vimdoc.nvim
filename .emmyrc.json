@@ -1,0 +1,25 @@
+{
+  "$schema": "https://raw.githubusercontent.com/EmmyLuaLs/emmylua-analyzer-rust/refs/heads/main/crates/emmylua_code_analysis/resources/schema.json",
+  "runtime": {
+    "version": "LuaJIT",
+    "requirePattern": ["lua/?.lua", "lua/?/init.lua"]
+  },
+  "workspace": {
+    "library": ["$VIMRUNTIME"],
+    "ignoreDir": [".luarocks"]
+  },
+  "diagnostics": {
+    "disable": [
+      "unnecessary-if",
+      "unnecessary-assert",
+      "missing-fields",
+      "access-invisible",
+      "invert-if"
+    ],
+    "enables": []
+  },
+  "strict": {
+    "typeCall": true,
+    "arrayIndex": true
+  }
+}
