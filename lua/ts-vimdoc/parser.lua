@@ -22,14 +22,28 @@ function Parser:parse()
   if self.metadata.table_of_contents ~= false then
     formatted_file = self:insert_table_of_contents(formatted_file, context.headers)
   end
-  table.insert(formatted_file, 1, self:header_line())
+  table.insert(formatted_file, 1, self:header_line(formatted_file))
   table.insert(formatted_file, 2, "")
   table.insert(formatted_file, "\nvim:tw=78:ts=8:ft=help:norl:")
 
   return table.concat(formatted_file, "\n")
 end
 
-function Parser:header_line()
+---@param formatted_file string[]
+---@return string
+function Parser:header_line(formatted_file)
+  if self.metadata.output_file then
+    local file = io.open(self.metadata.output_file, "r")
+    if file then
+      local content = file:read("*all")
+      file:close()
+      local old_lines = vim.split(content, "\n", { plain = true })
+      local new_body = vim.trim(table.concat(formatted_file, "\n"))
+      local old_body = vim.trim(table.concat(vim.list_slice(old_lines, 3, #old_lines - 1), "\n"))
+      local diff = (vim.diff or vim.text.diff)(new_body, old_body)
+      if #diff == 0 and old_lines[1] then return old_lines[1] end
+    end
+  end
   -- if this remains nil, localtime will be used
   local last_commit_timestamp = nil
   -- Attempt to acquire the last commit modification
@@ -115,7 +129,6 @@ function Parser:recurse(parent_node, content, _r)
   end
 
   for node in parent_node:iter_children() do
-
     -- print("processing ", node:type(), node:named())
 
     -- do not parse anonymous nodes
