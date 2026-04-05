@@ -35,7 +35,8 @@ I personally recommend also trying out
 
 ### Usage as a plugin
 
-> **NOTE: CURRENTLY, REQUIRES USING NEOVIM-NIGHTLY (>=0.8)**
+> [!NOTE]
+> nvim-treesitter is not needed after https://github.com/neovim/neovim/issues/22481
 
 If you use from within your *current* neovim session you need to install
 [`nvim-treesitter`](https://github.com/nvim-treesitter/nvim-treesitter) and
@@ -122,40 +123,24 @@ on:
       - main
 
 jobs:
-  vimdocgen:
+  generate-docs:
     runs-on: [ubuntu-latest]
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - run: date +%F > todays-date
-      - name: Restore cache for today's nightly.
-        uses: actions/cache@v3
+      - uses: rhysd/action-setup-vim@v1
         with:
-          path: build
-          key: ${{ runner.os }}-appimage-${{ hashFiles('todays-date') }}
-      - name: Install FUSE
-        run: sudo apt-get install -y libfuse2
-      - name: Setup neovim nightly and install plugins
+          neovim: true
+          version: nightly
+      - name: Generating vimdoc
         run: |
-          test -d build || {
-            mkdir -p build
-            wget https://github.com/neovim/neovim/releases/download/nightly/nvim.appimage
-            chmod +x nvim.appimage
-            mv nvim.appimage ./build/nvim
-          }
           mkdir -p ~/.local/share/nvim/site/pack/vendor/start
           git clone --depth 1 https://github.com/ibhagwan/ts-vimdoc.nvim ~/.local/share/nvim/site/pack/vendor/start/ts-vimdoc.nvim
-          git clone --depth 1 https://github.com/nvim-treesitter/nvim-treesitter ~/.local/share/nvim/site/pack/vendor/start/nvim-treesitter
-      - name: Build parser
-        run: |
-          export PACKPATH=$HOME/.local/share/nvim/site
-          ./build/nvim --headless -u ~/.local/share/nvim/site/pack/vendor/start/ts-vimdoc.nvim/scripts/init.lua -c "TSUpdateSync markdown" -c "TSUpdateSync markdown_inline" -c "qa"
-      - name: Generating docs
-        run: |
           export PATH="${PWD}/build/:${PATH}"
           export PACKPATH=$HOME/.local/share/nvim/site
-          ./build/nvim --headless -u ~/.local/share/nvim/site/pack/vendor/start/ts-vimdoc.nvim/scripts/init.lua  -c "lua require('ts-vimdoc').docgen({input_file='README.md', output_file='doc/fzf-lua.txt', project_name='fzf-lua', version='For Neovim >= 0.8.0'})" -c "qa"
+          nvim --headless -u ~/.local/share/nvim/site/pack/vendor/start/ts-vimdoc.nvim/scripts/init.lua  -c "lua require('ts-vimdoc').docgen({input_file='README.md', output_file='doc/fzf-lua.txt', project_name='fzf-lua', version='For Neovim >= 0.9.0'})" -c "qa"
+          nvim --headless -u ~/.local/share/nvim/site/pack/vendor/start/ts-vimdoc.nvim/scripts/init.lua  -c "lua require('ts-vimdoc').docgen({input_file='OPTIONS.md', output_file='doc/fzf-lua-opts.txt', project_name='fzf-lua-opts', table_of_contents_lvl_min = 2, table_of_contents_lvl_max = 3, version='For Neovim >= 0.9.0'})" -c "qa"
       - name: Commit changes
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -166,7 +151,6 @@ jobs:
           git config user.email "actions@github"
           git config user.name "Github Actions"
           git remote set-url origin https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git
-          git add doc/fzf-lua.txt
+          git add doc
           # Only commit and push if we have changes
           git diff --quiet && git diff --staged --quiet || (git commit -m "${COMMIT_MSG}"; git push origin HEAD:${GITHUB_REF})
-```
